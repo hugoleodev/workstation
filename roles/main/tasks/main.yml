@@ -1,0 +1,28 @@
+---
+- name: Check if Homebrew is installed
+  stat:
+    path: /usr/local/bin/brew
+  register: hb
+
+- name: Abort if homebrew was not installed
+  fail:
+    msg: Homebrew was not installed. Please install homebrew.
+  when: not hb.stat.exists
+
+- name: Install ffmpeg
+  homebrew:
+    name: ffmpeg
+    state: present
+    update_homebrew: yes
+
+- name: Setting Up Git Config Name
+  git_config:
+    name: user.name
+    scope: global
+    value: Hugo Leonardo
+
+- name: Setting Up Git Config Email
+  git_config:
+    name: user.email
+    scope: global
+    value: hugoleodev@gmail.com

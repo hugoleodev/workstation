@@ -1,0 +1,11 @@
+eval "$(pyenv init -)"
+{% for vp in pyenv.venv_packages %}
+pyenv activate {{ vp.virtualenv }}
+pip install {{ vp.packages }}
+
+{% if vp.setup_ipykernel | default(False) %}
+python -m ipykernel install --user
+{% endif %}
+
+pyenv deactivate
+{% endfor %}

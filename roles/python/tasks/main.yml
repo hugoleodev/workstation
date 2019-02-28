@@ -1,0 +1,80 @@
+- name: Install pyenv
+  homebrew:
+    name: pyenv
+    state: present
+    update_homebrew: yes
+
+- name: Install pyenv-virtualenv
+  homebrew:
+    name: pyenv-virtualenv
+    state: present
+    update_homebrew: yes
+
+- name: Install pyenv-virtualenvwrapper
+  homebrew:
+    name: pyenv-virtualenvwrapper
+    state: present
+    update_homebrew: yes
+
+- name: Create a virtualenvs directory
+  file:
+    path: "{{ ansible_env.HOME }}/.ve"
+    state: directory
+
+- name: Create a workspace directory
+  file:
+    path: "{{ ansible_env.HOME }}/workspace"
+    state: directory
+
+- name: Copy pyenv setup to user home directory
+  copy:
+    src: .pyenv-setup.sh
+    dest: "{{ ansible_env.HOME }}/.pyenv-setup.sh"
+
+- name: Adding Pyenv settings to zsh
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    line: "source .pyenv-setup.sh"
+    insertafter: EOF
+
+- name: Check Pyenv Versions
+  shell: pyenv versions
+  register: peversions
+
+- name: Install Pyenv Python Versions
+  command: "pyenv install {{ item }}"
+  when: "item not in peversions.stdout"
+  with_items: "{{ pyenv.versions }}"
+
+- name: Check Pyenv Virtualenvs
+  shell: pyenv virtualenvs
+  register: pevenvs
+
+- name: Creating VirtualEnvs
+  command: "pyenv virtualenv {{ item.py_version }} {{ item.name }}"
+  with_items: "{{ pyenv.virtualenvs }}"
+  when: "'{}/envs/{}'.format(item.py_version, item.name) not in pevenvs.stdout"
+
+- name: Setup per virtualenv packages
+  shell: "{{ lookup('template', 'virtualenv_packages_install.sh.j2') }}"
+
+- name: Setting Up all python versions as global
+  command: "pyenv global {{ item }}"
+  with_items:
+    - "{{ pyenv.versions }}"
+
+- name: Setting Up all python virtualenvs as global
+  command: "pyenv global {{ item.name }}"
+  with_items:
+    - "{{ pyenv.virtualenvs }}"
+
+- name: Adding virtualenvlazy to .pyenv-setup.sh
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/.pyenv-setup.sh"
+    line: "pyenv virtualenvwrapper_lazy"
+    insertafter: EOF
+
+- name: Install Custom IPython Initialization
+  copy:
+    src: 00-detect-virtualenv-sitepackages.py
+    dest: "{{ ansible_env.HOME }}/.ipython/profile_default/startup/00-venv-sitepackages.py"
