@@ -1,0 +1,164 @@
+---
+- hosts: 127.0.0.1
+  connection: local
+  tasks: 
+  - name: Check if Homebrew is installed
+    stat:
+      path: /usr/local/bin/brew
+    register: hb
+
+  - name: Install Homebrew
+    script: install-homebrew.sh
+    when: not hb.stat.exists
+  
+  - name: Install Visual Studio Code
+    homebrew_cask:
+      name: visual-studio-code
+      state: present
+  
+  - name: Install ffmpeg
+    homebrew:
+      name: ffmpeg
+      state: present
+      update_homebrew: yes
+
+  - name: Check if Google Chrome is installed
+    stat:
+      path: /Applications/Google Chrome.app
+    register: gc 
+  
+  - name: Install Chrome
+    homebrew_cask:
+      name: google-chrome
+      state: present
+    when: not gc.stat.exists
+
+  - name: Check if Iterm 2 is installed
+    stat:
+      path: /Applications/Iterm.app
+    register: iterm 
+  
+  - name: Install Iterm 2
+    homebrew_cask:
+      name: iterm2
+      state: present
+    when: not iterm.stat.exists
+  
+  - name: Install pyenv
+    homebrew:
+      name: pyenv
+      state: present
+      update_homebrew: yes
+  
+  - name: Install pyenv-virtualenv
+    homebrew:
+      name: pyenv-virtualenv
+      state: present
+      update_homebrew: yes
+  
+  - name: Install pyenv-virtualenvwrapper
+    homebrew:
+      name: pyenv-virtualenvwrapper
+      state: present
+      update_homebrew: yes
+  
+  - name: Create a virtualenvs directory
+    file:
+      path: "{{ ansible_env.HOME }}/.ve"
+      state: directory
+  
+  - name: Create a workspace directory
+    file:
+      path: "{{ ansible_env.HOME }}/workspace"
+      state: directory
+
+  - name: Copy pyenv setup to user home directory
+    copy:
+      src: .pyenv-setup.sh
+      dest: "{{ ansible_env.HOME }}/.pyenv-setup.sh"
+
+  - name: Adding Pyenv settings to zsh
+    lineinfile:
+      path: "{{ ansible_env.HOME }}/.zshrc"
+      line: "source .pyenv-setup.sh"
+      insertafter: EOF
+  
+  - name: Check Pyenv Versions
+    shell: pyenv versions
+    register: peversions
+
+  - name: Install python 2
+    command: pyenv install 2.7.15
+    when: "'2.7.15' not in peversions.stdout"
+  
+  - name: Install python 3
+    command: pyenv install 3.7.2
+    when: "'3.7.2' not in peversions.stdout"
+
+  - name: Install Anaconda
+    command: pyenv install anaconda3-5.3.1
+    when: "'anaconda3-5.3.1' not in peversions.stdout"
+
+  - name: Check Pyenv Virtualenvs
+    shell: pyenv virtualenvs
+    register: pevenvs
+  
+  - name: Creating VirtualEnvs For Python 3
+    command: "pyenv virtualenv 3.7.2 {{ item }}"
+    with_items:
+      - jupyter3
+      - tools3
+    when: "'3.7.2/envs/' + item not in pevenvs.stdout"
+
+  - name: Creating VirtualEnvs For Python 2
+    command: "pyenv virtualenv 2.7.15 {{ item }}"
+    with_items:
+      - ipython2
+      - tools2
+    when: "'2.7.15/envs/' + item not in pevenvs.stdout"
+  
+  - name: Install Jupyter / IPython
+    shell: "{{ lookup('template', 'jupyter-ipython-install.sh.j2') }}"
+    vars:
+      envs:
+        jupyter3:
+          package: jupyter
+        ipython2:
+          package: ipykernel
+    loop: "{{ lookup('dict', envs) }}"
+
+  - name: Install Common Tools
+    shell: "{{ lookup('template', 'tools.sh.j2') }}"
+    vars:
+      tools:
+        tools3:
+          packages: youtube-dl rows click requests requests_cache tqdm
+        tools2:
+          packages: rename s3cmd fabric mercurial
+    loop: "{{ lookup('dict', tools) }}"
+  
+  - name: Setting Up all python installations as global
+    command: "pyenv global 3.7.2 2.7.15 anaconda3-5.3.1 jupyter3 ipython2 tools3 tools2"
+  
+  - name: Adding virtualenvlazy to .pyenv-setup.sh
+    lineinfile:
+      path: "{{ ansible_env.HOME }}/.pyenv-setup.sh"
+      line: "pyenv virtualenvwrapper_lazy"
+      insertafter: EOF
+
+  - name: Install Custom IPython Initialization
+    copy:
+      src: 00-detect-virtualenv-sitepackages.py
+      dest: "{{ ansible_env.HOME }}/.ipython/profile_default/startup/00-venv-sitepackages.py"
+
+  - name: Setting Up Git Config Name
+    git_config:
+      name: user.name
+      scope: global
+      value: Hugo Leonardo
+
+  - name: Setting Up Git Config Email
+    git_config:
+      name: user.email
+      scope: global
+      value: hugoleodev@gmail.com
