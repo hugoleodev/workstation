@@ -1,0 +1,19 @@
+---
+- name: Install NVM - Node Version Manager
+  git: repo=https://github.com/creationix/nvm.git dest="{{ ansible_env.HOME }}/.nvm "
+
+- name: "Source nvm in {{ ansible_env.HOME }}/.zshrc"
+  lineinfile: >
+    dest="{{ ansible_env.HOME }}/.zshrc"
+    line="source {{ ansible_env.HOME }}/.nvm/nvm.sh"
+    create=yes
+
+- name: Install Node Stable
+  shell: "source {{ ansible_env.HOME }}/.nvm/nvm.sh && nvm install stable"
+  register: nvm_install_result
+  changed_when: "'is already installed.' not in nvm_install_result.stderr"
+
+- name: Install "yarn" globally.
+  npm:
+    name: yarn
+    global: yes
