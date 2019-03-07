@@ -42,8 +42,8 @@
   register: peversions
 
 - name: Install Pyenv Python Versions
-  command: "pyenv install {{ item }}"
-  when: "item not in peversions.stdout"
+  command: "pyenv install {{ item.name }}"
+  when: "item.name not in peversions.stdout"
   with_items: "{{ pyenv.versions }}"
 
 - name: Check Pyenv Virtualenvs
@@ -59,14 +59,7 @@
   shell: "{{ lookup('template', 'virtualenv_packages_install.sh.j2') }}"
 
 - name: Setting Up all python versions as global
-  command: "pyenv global {{ item }}"
-  with_items:
-    - "{{ pyenv.versions }}"
-
-- name: Setting Up all python virtualenvs as global
-  command: "pyenv global {{ item.name }}"
-  with_items:
-    - "{{ pyenv.virtualenvs }}"
+  command: "pyenv global {% for version in pyenv.versions + pyenv.virtualenvs %} {{ version.name }} {% endfor %}"
 
 - name: Adding virtualenvlazy to .pyenv-setup.sh
   lineinfile:
