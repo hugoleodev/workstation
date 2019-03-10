@@ -15,6 +15,12 @@
     state: present
     update_homebrew: yes
 
+- name: Install mpv
+  homebrew:
+    name: mpv
+    state: present
+    update_homebrew: yes
+
 - name: Setting Up Git Config Name
   git_config:
     name: user.name

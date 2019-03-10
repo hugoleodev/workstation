@@ -27,7 +27,7 @@ pyenv:
       setup_ipykernel: true
     
     - virtualenv: tools3
-      packages: youtube-dl rows click requests requests_cache tqdm
+      packages: youtube-dl rows click requests requests_cache tqdm pipenv mps-youtube catt
     
     - virtualenv: tools2
       packages: rename s3cmd fabric mercurial

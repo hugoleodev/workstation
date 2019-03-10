@@ -17,3 +17,8 @@
   npm:
     name: yarn
     global: yes
+
+- name: Install "castnow" globally.
+  npm:
+    name: castnow
+    global: yes
